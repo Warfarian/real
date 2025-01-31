@@ -1,36 +1,36 @@
-import 'dart:typed_data';
+import 'dart:convert';
 import 'package:camera/camera.dart';
 import 'package:get/get.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:tflite_flutter/tflite_flutter.dart';
+import 'package:http/http.dart' as http;
 import 'package:image/image.dart' as img;
 import 'package:flutter/services.dart';
-import 'dart:math' as math;
+import 'package:flutter/foundation.dart';
 
 class ScanController extends GetxController {
-  late Interpreter _interpreter;
   late CameraController cameraController;
   late List<CameraDescription> cameras;
   
-  // Standard input size for many image classification models
-  final int inputSize = 224;  // Common size for many models
-  
-  var cameraCount = 0;
   var isCameraInitialized = false.obs;
-  var isModelInitialized = false.obs;
+  var detectionResult = "".obs;
+  
+  bool isApiCallInProgress = false;
+  DateTime lastApiCallTime = DateTime.now();
+  final Duration minApiCallInterval = Duration(seconds: 3);
+  
+  // Add your API key here
+  final String apiKey = "YOUR_API_KEY";
+  final String apiEndpoint = "https://api.studio.nebius.ai/v1/chat/completions";
   
   @override
   void onInit() {
     super.onInit();
-    initTFLite().then((_) => initCamera());
+    initCamera();
   }
   
   @override
   void dispose() {
     cameraController.dispose();
-    if (isModelInitialized.value) {
-      _interpreter.close();
-    }
     super.dispose();
   }
   
@@ -40,105 +40,119 @@ class ScanController extends GetxController {
       
       cameraController = CameraController(
         cameras[0],
-        ResolutionPreset.medium,
+        ResolutionPreset.max, // Use maximum resolution
         enableAudio: false,
         imageFormatGroup: ImageFormatGroup.yuv420,
       );
       
       await cameraController.initialize();
+      await cameraController.lockCaptureOrientation(DeviceOrientation.portraitUp);
+      
+      // Set optimal capture settings
+      await Future.wait([
+        cameraController.getMaxZoomLevel().then((value) {
+          debugPrint('Max zoom level: $value');
+        }).catchError((e) {
+          debugPrint('Error getting max zoom level: $e');
+        }),
+        cameraController.setFocusMode(FocusMode.auto),
+        cameraController.setExposureMode(ExposureMode.auto),
+      ]);
+      
+      // Set the description of the camera
+      final description = cameras[0];
+      debugPrint('Camera info - Lens direction: ${description.lensDirection}, Sensor orientation: ${description.sensorOrientation}');
       
       cameraController.startImageStream((CameraImage image) {
-        cameraCount++;
-        if (cameraCount % 10 == 0) {
-          cameraCount = 0;
-          if (isModelInitialized.value) {
-            runInference(image);
-          }
+        if (!isApiCallInProgress &&
+            DateTime.now().difference(lastApiCallTime) > minApiCallInterval) {
+          lastApiCallTime = DateTime.now();
+          processFrame(image);
         }
-        update();
       });
       
       isCameraInitialized.value = true;
       update();
     } else {
-      print("Camera permission denied");
+      debugPrint("Camera permission denied");
     }
   }
   
-  Future<void> initTFLite() async {
-    try {
-      _interpreter = await Interpreter.fromAsset(
-        'assets/model.tflite',
-        options: InterpreterOptions()..threads = 4,
-      );
-      
-      print("Model loaded successfully");
-      print("Input tensor shape: ${_interpreter.getInputTensor(0).shape}");
-      print("Input tensor type: ${_interpreter.getInputTensor(0).type}");
-      print("Output tensor shape: ${_interpreter.getOutputTensor(0).shape}");
-      print("Output tensor type: ${_interpreter.getOutputTensor(0).type}");
-      
-      isModelInitialized.value = true;
-    } catch (e) {
-      print("Error while loading the model: $e");
-      isModelInitialized.value = false;
-    }
-  }
-  
-  Future<void> runInference(CameraImage cameraImage) async {
-    if (!isModelInitialized.value) return;
-    
+  Future<void> processFrame(CameraImage cameraImage) async {
+    isApiCallInProgress = true;
     try {
       img.Image? convertedImage = convertYUV420ToImage(cameraImage);
       if (convertedImage == null) return;
       
-      // Resize to standard input size
-      img.Image resizedImage = img.copyResize(
-        convertedImage,
-        width: inputSize,
-        height: inputSize,
+      List<int> jpegBytes = img.encodeJpg(convertedImage);
+      String base64Image = base64Encode(jpegBytes);
+      
+      await sendToQwenAPI(base64Image);
+      
+    } catch (e) {
+      debugPrint("Error processing frame: $e");
+      detectionResult.value = "Error: $e";
+    } finally {
+      isApiCallInProgress = false;
+    }
+  }
+  
+  Future<void> sendToQwenAPI(String base64Image) async {
+    try {
+      final response = await http.post(
+        Uri.parse(apiEndpoint),
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "*/*",
+          "Authorization": "Bearer $apiKey",
+        },
+        body: jsonEncode({
+          "model": "Qwen/Qwen2-VL-7B-Instruct",
+          "max_tokens": 8192,
+          "temperature": 0.6,
+          "top_p": 0.95,
+          "messages": [
+            {
+              "role": "system",
+              "content": """You are an expert in mental health and visual perception analysis. Your role is to help users distinguish between real perceptions and potential hallucinations. For each image:
+
+Describe the image briefly, and state if there is a person or not.
+Keep responses concise, factual, and empathetic. Avoid technical jargon. Focus on helping the user understand what is and isn't real in their environment."""
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Analyze this image and tell me if you see any people and if you might be hallucinating."
+                },
+                {
+                  "type": "image_url",
+                  "image_url": {
+                    "url": "data:image/jpeg;base64,$base64Image"
+                  }
+                }
+              ]
+            }
+          ]
+        }),
       );
       
-      // Create 4D input tensor array [1, height, width, 3]
-      var input = [List.generate(
-        inputSize,
-        (y) => List.generate(
-          inputSize,
-          (x) {
-            var pixel = resizedImage.getPixel(x, y);
-            // Keep values as integers in range 0-255
-            return [
-              img.getRed(pixel),
-              img.getGreen(pixel),
-              img.getBlue(pixel),
-            ];
-          },
-        ),
-      )];
-      
-      // Prepare output tensor
-      var outputShape = _interpreter.getOutputTensor(0).shape;
-      var outputSize = outputShape[1]; // Number of classes
-      var output = List.filled(1, List.filled(outputSize, 0));
-      
-      // Run inference
-      _interpreter.run(input, output);
-      
-      // Print results
-      print("Inference completed");
-      print("Output size: ${output[0].length}");
-      var predictions = List<MapEntry<int, int>>.from(
-        output[0].asMap().entries.toList()
-      )..sort((a, b) => b.value.compareTo(a.value));
-      
-      // Print top 5 predictions
-      for (var i = 0; i < math.min(5, predictions.length); i++) {
-        print("Label ${predictions[i].key}: ${predictions[i].value}");
+      if (response.statusCode == 200) {
+        var data = jsonDecode(response.body);
+        if (data["choices"] != null && data["choices"].isNotEmpty) {
+          String assistantResponse = data["choices"][0]["message"]["content"] ?? "No response";
+          detectionResult.value = assistantResponse;
+        } else {
+          detectionResult.value = "No detection results";
+        }
+      } else {
+        debugPrint("API call failed with status: ${response.statusCode}");
+        detectionResult.value = "API Error: ${response.statusCode}";
       }
-      
-    } catch (e, stackTrace) {
-      print("Error during inference: $e");
-      print("Stack trace: $stackTrace");
+    } catch (e) {
+      debugPrint("Error calling Qwen API: $e");
+      detectionResult.value = "Network Error";
     }
   }
   
@@ -169,7 +183,7 @@ class ScanController extends GetxController {
       }
       return imgImage;
     } catch (e) {
-      print("Error converting YUV420 to image: $e");
+      debugPrint("Error converting YUV420 to image: $e");
       return null;
     }
   }
