@@ -10,12 +10,35 @@ class CameraView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: GetBuilder<ScanController>(
-        init : ScanController(),
+        init: ScanController(),
         builder: (controller) {
-          return controller.isCameraInitalized.value 
-                  ? CameraPreview(controller.cameraController)
-                  : const Center(child: Text("Loading Preview..."));
-        }
-    ));
+          if (!controller.isCameraInitialized.value) {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          }
+          
+          return controller.cameraController.value.isInitialized
+              ? Container(
+                  width: double.infinity,
+                  height: double.infinity,
+                  child: Transform.rotate(
+                    angle: 90 * 3.1415927 / 180,
+                    child: FittedBox(
+                      fit: BoxFit.cover,
+                      child: SizedBox(
+                        width: controller.cameraController.value.previewSize?.height ?? 1,
+                        height: controller.cameraController.value.previewSize?.width ?? 1,
+                        child: CameraPreview(controller.cameraController),
+                      ),
+                    ),
+                  ),
+                )
+              : const Center(
+                  child: Text("Loading Preview..."),
+                );
+        },
+      ),
+    );
   }
-}
+}
