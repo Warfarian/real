@@ -9,7 +9,7 @@ class ChatController extends GetxController {
   final TextEditingController textController = TextEditingController();
   
   bool isApiCallInProgress = false;
-  final String apiKey = "YOUR_API_KEY";
+  final String apiKey = "your_api_key_here";
   final String chatApiEndpoint = "https://api.studio.nebius.ai/v1/chat/completions";
 
   void sendMessage() async {

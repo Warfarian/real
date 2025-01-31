@@ -19,7 +19,7 @@ class ScanController extends GetxController {
   final Duration minApiCallInterval = Duration(seconds: 3);
   
   // Add your API key here
-  final String apiKey = "YOUR_API_KEY";
+  final String apiKey = "your_api_key";
   final String apiEndpoint = "https://api.studio.nebius.ai/v1/chat/completions";
   
   @override
@@ -40,7 +40,7 @@ class ScanController extends GetxController {
       
       cameraController = CameraController(
         cameras[0],
-        ResolutionPreset.max, // Use maximum resolution
+        ResolutionPreset.max,
         enableAudio: false,
         imageFormatGroup: ImageFormatGroup.yuv420,
       );

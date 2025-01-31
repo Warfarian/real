@@ -22,20 +22,19 @@ class SupportChatView extends StatelessWidget {
             children: [
               Expanded(
                 child: ListView.builder(
-                  reverse: true, // newest messages at the bottom
+                  reverse: true,
                   itemCount: controller.messages.length,
                   itemBuilder: (context, index) {
-                    // Since list is in chronological order, reverse-index it.
                     final message = controller.messages[controller.messages.length - 1 - index];
                     bool isUser = message['sender'] == 'user';
                     return Align(
                       alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
                       child: Container(
-                        margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                        padding: const EdgeInsets.all(12),
+                        margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         decoration: BoxDecoration(
-                          color: isUser ? Colors.blueAccent : Colors.grey[300],
-                          borderRadius: BorderRadius.circular(8),
+                          color: isUser ? Colors.deepPurple.shade500 : Colors.grey[200],
+                          borderRadius: BorderRadius.circular(16),
                         ),
                         child: Text(
                           message['text'] ?? '',
@@ -49,8 +48,16 @@ class SupportChatView extends StatelessWidget {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                color: Colors.white,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 4,
+                    ),
+                  ],
+                ),
                 child: Row(
                   children: [
                     Expanded(
@@ -59,15 +66,21 @@ class SupportChatView extends StatelessWidget {
                         decoration: InputDecoration(
                           hintText: 'Type your message...',
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide(color: Colors.deepPurple.shade200),
                           ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide(color: Colors.deepPurple.shade400),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         ),
                       ),
                     ),
                     const SizedBox(width: 8),
                     ElevatedButton(
-                      child: const Text("Send"),
                       onPressed: () => controller.sendMessage(),
+                      child: const Text("Send"),
                     ),
                   ],
                 ),

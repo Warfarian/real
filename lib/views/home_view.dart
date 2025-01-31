@@ -13,7 +13,7 @@ class HomeView extends StatelessWidget {
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Colors.blue.shade200, Colors.blue.shade600],
+            colors: [Colors.deepPurple.shade200, Colors.deepPurple.shade600],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -21,22 +21,22 @@ class HomeView extends StatelessWidget {
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(32),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    'Welcome to Real',
+                    'Welcome to Iris',
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
                   Text(
                     'Your Digital Support Companion',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: Colors.white.withAlpha(230),
+                      color: Colors.white70,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -47,14 +47,14 @@ class HomeView extends StatelessWidget {
                     subtitle: 'Use camera to check reality',
                     onPressed: () => Get.to(() => const CameraView()),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 24),
                   _buildButton(
                     icon: Icons.chat_bubble_outline,
                     label: 'Support Chat',
                     subtitle: 'Talk with our support bot',
                     onPressed: () => Get.to(() => const SupportChatView()),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 24),
                   _buildButton(
                     icon: Icons.medical_information_outlined,
                     label: 'Medical Info',
@@ -83,7 +83,7 @@ class HomeView extends StatelessWidget {
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.white,
-          foregroundColor: Colors.blue.shade700,
+          foregroundColor: Colors.deepPurple.shade700,
           elevation: 4,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
@@ -110,7 +110,7 @@ class HomeView extends StatelessWidget {
                     subtitle,
                     style: TextStyle(
                       fontSize: 14,
-                      color: Colors.blue.shade700.withAlpha(179),
+                      color: Colors.deepPurple.shade700.withAlpha(180),
                     ),
                   ),
                 ],
