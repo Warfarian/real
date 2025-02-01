@@ -17,10 +17,10 @@ class EmergencyAlertController extends GetxController {
   );
 
   bool isSendingAlert = false;  // Local development server endpoint
-  final String backendEndpoint = "http://localhost:3000/alerts";
+  final String backendEndpoint = "http://lcoalhost:3000/alerts";
   
   // API token for authorization
-  final String apiToken = "your_api_token_here"; 
+  final String apiToken = 'add your alert token here'; 
 
   @override
   void onInit() {
@@ -111,31 +111,40 @@ class EmergencyAlertController extends GetxController {
     update();
 
     try {
-      final response = await http.post(
-        Uri.parse(backendEndpoint),
-        headers: {
-          "Content-Type": "application/json",
-          "x-auth-token": apiToken,
-        },
-        body: jsonEncode({
-          "message": messageController.text,
-          "contacts": emergencyContacts,
-        }),
-      );
+      final headers = {
+        "Content-Type": "application/json",
+        "x-auth-token": apiToken,
+      };
+      
+      print('Sending request to: $backendEndpoint');
+      print('Headers: $headers');
+      print('Body: ${jsonEncode({
+        "message": messageController.text,
+        "contacts": emergencyContacts,
+      })}');
+      
+      // Send alert to each contact
+      for (final phone in emergencyContacts) {
+        final response = await http.post(
+          Uri.parse(backendEndpoint),
+          headers: headers,
+          body: jsonEncode({
+            "phone": phone,
+            "message": messageController.text,
+          }),
+        );
 
-      if (response.statusCode == 200) {
-        Get.snackbar(
-          "Success",
-          "Emergency alert sent successfully.",
-          snackPosition: SnackPosition.BOTTOM,
-        );
-      } else {
-        Get.snackbar(
-          "Error",
-          "Failed to send emergency alert (Status: ${response.statusCode}).",
-          snackPosition: SnackPosition.BOTTOM,
-        );
+        if (response.statusCode != 200) {
+          throw Exception('Failed to send alert to $phone: ${response.body}');
+        }
       }
+
+      // If we get here, all messages were sent successfully
+      Get.snackbar(
+        "Success",
+        "Emergency alert sent successfully.",
+        snackPosition: SnackPosition.BOTTOM,
+      );
     } catch (e) {
       Get.snackbar(
         "Error",
