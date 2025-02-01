@@ -19,7 +19,23 @@ Iris is a Flutter-based mobile application designed to provide digital support t
 - Educational content
 - Support information
 
+### 🚨 Emergency Alert System
+- Configure emergency contacts
+- One-tap panic button
+- Automated SMS alerts via Twilio
+- Customizable emergency messages
+
 ## Getting Started
+
+## Emergency Alert System
+
+The Emergency Alert feature allows users to:
+- Add and manage emergency contacts (phone numbers in E.164 format)
+- Customize emergency alert messages
+- Trigger immediate alerts to all contacts with one tap
+- Receive confirmation when alerts are sent
+
+The system uses a secure web service backed by Twilio to send SMS alerts to designated emergency contacts.
 
 ### Prerequisites
 - Flutter SDK (^3.6.1)
