@@ -66,7 +66,6 @@ The application uses the Nebius AI API for chat functionality. You'll need to:
 ### Supported Platforms
 - Android
 - iOS
-- Web (experimental)
 
 ## Development
 
