@@ -36,6 +36,7 @@ The Emergency Alert feature allows users to:
 - Receive confirmation when alerts are sent
 
 The system uses a secure web service backed by Twilio to send SMS alerts to designated emergency contacts.
+[Repo here](https://github.com/Warfarian/iris-webservice)
 
 ### Prerequisites
 - Flutter SDK (^3.6.1)
